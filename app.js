@@ -4,7 +4,7 @@ const PORT = process.env.PORT || 8080;
 let app = express();
 
 app.use((req,res,next)=>{
-    console.log('PATH: ' + req.path);
+    console.log('path: ' + req.path);
     next();
 });
 
