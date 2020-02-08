@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 //schemat ja modelit
-const kayttaja_schema = new Schema({
+const user_schema = new Schema({
     nimi: {
         type: String,
         required: true
@@ -19,7 +19,7 @@ const kayttaja_schema = new Schema({
     }]
 });
 
-const kayttaja_model = mongoose.model('kayttaja', kayttaja_schema);
+const user_model = mongoose.model('user', user_schema);
 
 
 const tuote_schema = new Schema({
@@ -76,8 +76,8 @@ app.use((req,res,next)=>{
     if(!req.session.user){
         return next();
     }
-    kayttaja_model.findById(req.session.user._id).then((kayttaja)=>{
-        req.kayttaja = kayttaja;
+    user_model.findById(req.session.user._id).then((user)=>{
+        req.user = user;
         next();
     }).catch((virhe)=>{
         console.log(virhe);
@@ -87,17 +87,17 @@ app.use((req,res,next)=>{
 
 //tämä ok:
 app.get('/', onkoKirjautunut, (req, res, next) => {
-    const kayttaja = req.kayttaja;
+    const user = req.user;
     user.populate('tuotteet').execPopulate().then(()=>{
-        console.log('käyttäjä: ', kayttaja);
+        console.log('käyttäjä: ', user);
         res.write(`
         <html>
         <body>
-        Olet kirjautunut sisään käyttäjänimellä: ${kayttaja.nimi}
+        Olet kirjautunut sisään käyttäjänimellä: ${user.nimi}
         <form action="/logout" method="POST">
             <button type="submit">Kirjaudu ulos</button>
         </form>`);
-        kayttaja.tuotteet.forEach((tuote)=>{
+        user.tuotteet.forEach((tuote)=>{
             res.write(tuote.nimi);
             res.write(tuote.kuva_url);
             res.write(tuote.maara);
@@ -135,11 +135,11 @@ app.get('/login', (req, res, next) => {
     <body>
     <head><meta charset='utf-8'></head>
         <form action="/login" method="POST">
-            <input type="text" name="kayttaja_nimi">
+            <input type="text" name="user-name">
             <button type="submit">Kirjaudu sisään</button>
         </form>
         <form action="/register" method="POST">
-            <input type="text" name="kayttaja_nimi">
+            <input type="text" name="user-name">
             <button type="submit">Luo uusi käyttäjänimi</button>
         </form>
     </body>
@@ -150,12 +150,12 @@ app.get('/login', (req, res, next) => {
 
 //tämä ok:
 app.post('/login', (req, res, next) => {
-    const kayttaja_nimi = req.body.kayttaja_nimi;
-    kayttaja_model.findOne({
-        nimi: kayttaja_nimi
-    }).then((kayttaja)=>{
-        if(kayttaja){
-            req.session.user = kayttaja;
+    const user_name = req.body.user_name;
+    user_model.findOne({
+        nimi: user_name
+    }).then((user)=>{
+        if(user){
+            req.session.user = user;
             return res.redirect("/");
         }
         res.redirect("/login");
@@ -164,16 +164,16 @@ app.post('/login', (req, res, next) => {
 
 //tämä ok:
 app.post('/register', (req, res, next) => {
-    const user_name = req.body.kayttaja_nimi;
-    kayttaja_model.findOne({
+    const user_name = req.body.user-name;
+    user_model.findOne({
         nimi: user_name
-    }).then((kayttaja)=>{
-        if(kayttaja){
+    }).then((user)=>{
+        if(user){
             console.log('Käyttäjänimi on jo varattu.');
             return res.redirect("/login");
         }
 
-        let uusi_kayttaja = new kayttaja_model({
+        let uusi_kayttaja = new user_model({
             nimi: user_name,
             tuotteet: []
         });
