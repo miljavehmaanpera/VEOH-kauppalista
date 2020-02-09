@@ -5,23 +5,31 @@ const session = require('express-session');
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-const note_schema = new Schema({
+const tuote_schema = new Schema({
     text: {
         type: String,
         required: true
-    }
-});
-const note_model = new mongoose.model('note', note_schema);
-
-
-const kayttaja_schema = new Schema({
-    name: {
+    },
+    maara:{
         type: String,
         required: true
     },
-    notes: [{
+    kuva_url:{
+        type: String,
+        required: false
+    }
+});
+const tuote_model = new mongoose.model('tuote', tuote_schema);
+
+
+const kayttaja_schema = new Schema({
+    nimi: {
+        type: String,
+        required: true
+    },
+    tuotteet: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'note',
+        ref: 'tuote',
         req: true
     }]
 });
@@ -71,31 +79,57 @@ app.use((req, res, next) => {
 
 app.get('/', is_logged_handler, (req, res, next) => {
     const user = req.user;
-    user.populate('notes')
+    user.populate('tuotteet')
         .execPopulate()
         .then(() => {
-            console.log('user:', user);
+            console.log('käyttäjä:', user);
             res.write(`
         <html>
         <head><meta charset='utf-8'></head>
         <body>
-            Kirjautunut sisään käyttäjänimellä: ${user.name}
+            Kirjautunut sisään käyttäjänimellä: ${user.nimi}
             <form action="/logout" method="POST">
                 <button type="submit">Kirjaudu ulos</button>
             </form>`);
-            user.notes.forEach((note) => {
-                res.write(note.text);
+            user.tuotteet.forEach((tuote) => {
                 res.write(`
-                <form action="delete-note" method="POST">
-                    <input type="hidden" name="note_id" value="${note._id}">
-                    <button type="submit">Poista tuote</button>
-                </form>
+                <table>
+                <tr>
+                    <td rowspan="2">
+                        <img src="${tuote.kuva_url}" height="100" width="100">
+                    </td>
+                    <td>
+                        ${tuote.text}
+                    </td>
+                    <td width=100>
+                    </td>
+                    <td>
+                        <form action="poista-tuote" method="POST">
+                            <input type="hidden" name="tuote_id" value="${tuote._id}">
+                            <button type="submit">Poista tuote</button>
+                        </form>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                      määrä: ${tuote.maara}
+                    </td>
+                    <td width=100>
+                    </td>
+                    <td>
+                        muuta määrää
+                    </td>
+                </tr>
+                </table>
+                <p>
                 `);
             });
 
             res.write(`
-            <form action="/add-note" method="POST">
-                <input type="text" name="note">
+            <form action="/lisaa-tuote" method="POST">
+                <input type="text" placeholder="tuote" name="tuote_text">
+                <input type="text" placeholder="kuvan osoite" name="tuote_url">
+                <input type="text" placeholder="määrä" name="tuote_maara">
                 <button type="submit">Lisää tuote</button>
             </form>
             
@@ -107,42 +141,46 @@ app.get('/', is_logged_handler, (req, res, next) => {
         });
 });
 
-app.post('/delete-note', (req, res, next) => {
+app.post('/poista-tuote', (req, res, next) => {
     const user = req.user;
-    const note_id_to_delete = req.body.note_id;
+    const tuote_id_to_delete = req.body.tuote_id;
 
-    //Remove note from user.notes
-    const updated_notes = user.notes.filter((note_id) => {
-        return note_id != note_id_to_delete;
+    //Remove tuote from user.tuotteet
+    const updated_tuotteet = user.tuotteet.filter((tuote_id) => {
+        return tuote_id != tuote_id_to_delete;
     });
-    user.notes = updated_notes;
+    user.tuotteet = updated_tuotteet;
 
-    //Remove note object from database
+    //Remove tuote object from database
     user.save().then(() => {
-        note_model.findByIdAndRemove(note_id_to_delete).then(() => {
+        tuote_model.findByIdAndRemove(tuote_id_to_delete).then(() => {
             res.redirect('/');
         });
     });
 });
 
-app.get('/note/:id', (req, res, next) => {
-    const note_id = req.params.id;
-    note_model.findOne({
-        _id: note_id
-    }).then((note) => {
-        res.send(note.text);
+app.get('/tuote/:id', (req, res, next) => {
+    const tuote_id = req.params.id;
+    tuote_model.findOne({
+        _id: tuote_id
+    }).then((tuote) => {
+        res.send(tuote.text);
+        res.send(tuote.kuva_url);
+        res.send(tuote.maara);
     });
 });
 
-app.post('/add-note', (req, res, next) => {
+app.post('/lisaa-tuote', (req, res, next) => {
     const user = req.user;
 
-    let new_note = note_model({
-        text: req.body.note
+    let new_tuote = tuote_model({
+        text: req.body.tuote_text,
+        kuva_url: req.body.tuote_url,
+        maara: req.body.tuote_maara
     });
-    new_note.save().then(() => {
-        console.log('note saved');
-        user.notes.push(new_note);
+    new_tuote.save().then(() => {
+        console.log('tuote tallennettu');
+        user.tuotteet.push(new_tuote);
         user.save().then(() => {
             return res.redirect('/');
         });
@@ -177,7 +215,7 @@ app.get('/login', (req, res, next) => {
 app.post('/login', (req, res, next) => {
     const kayttajanimi = req.body.kayttajanimi;
     kayttaja_model.findOne({
-        name: kayttajanimi
+        nimi: kayttajanimi
     }).then((user) => {
         if (user) {
             req.session.user = user;
@@ -192,7 +230,7 @@ app.post('/register', (req, res, next) => {
     const kayttajanimi = req.body.kayttajanimi;
 
     kayttaja_model.findOne({
-        name: kayttajanimi
+        nimi: kayttajanimi
     }).then((user) => {
         if (user) {
             console.log('Käyttäjänimi on jo varattu');
@@ -200,8 +238,8 @@ app.post('/register', (req, res, next) => {
         }
 
         let new_user = new kayttaja_model({
-            name: kayttajanimi,
-            notes: []
+            nimi: kayttajanimi,
+            tuotteet: []
         });
 
         new_user.save().then(() => {
