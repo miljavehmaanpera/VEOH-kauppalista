@@ -94,10 +94,12 @@ app.get('/', is_logged_handler, (req, res, next) => {
         <link rel="stylesheet" type="text/css" href="css/style.css"/>
         <head><meta charset='utf-8'></head>
         <body>
-            Kirjautunut sisään käyttäjänimellä: ${user.nimi}
+           <p align=right> Kirjautunut sisään käyttäjänimellä: ${user.nimi}
             <form action="/logout" method="POST">
-                <button type="submit">Kirjaudu ulos</button>
-            </form>`);
+               <p align=right> <button type="submit">Kirjaudu ulos</button>
+            </form></p>
+            <h3>${user.nimi}n kauppalista<br><br><br></h3>
+            `);
             user.tuotteet.forEach((tuote) => {
                 res.write(`
                 <table>
@@ -133,6 +135,7 @@ app.get('/', is_logged_handler, (req, res, next) => {
                     </td>
                 </tr>
                 </table>
+                <hr width=550px align=left>
                 <p>
                 `);
             });
@@ -239,14 +242,17 @@ app.get('/login', (req, res, next) => {
     <link rel="stylesheet" type="text/css" href="css/style.css"/>
     <head><meta charset='utf-8'></head>
     <body>
-        <form action="/login" method="POST">
-            <input type="text" name="kayttajanimi">
-            <button type="submit">Kirjaudu sisään</button>
-        </form>
-        <form action="/register" method="POST">
-            <input type="text" name="kayttajanimi">
-            <button type="submit">Luo uusi käyttäjä</button>
-        </form>
+        <h1 align=center>Tervetuloa!</h1>
+        <div align=center>
+            <form action="/login" method="POST">
+                <input type="text" name="kayttajanimi">
+                <button type="submit">Kirjaudu sisään</button>
+            </form>
+            <form action="/register" method="POST">
+                <input type="text" name="kayttajanimi">
+                <button type="submit">Luo uusi käyttäjä</button>
+            </form>
+        </div>
     </body>
     <html>
     `);
