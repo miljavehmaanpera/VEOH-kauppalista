@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js",
-    "start-dev": "nodemon kauppalista_vaikeampi.js"
+    "start-dev": "nodemon kauppalista_vaikeampi2.js"
   },
   "repository": {
     "type": "git",
