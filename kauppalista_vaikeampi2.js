@@ -5,7 +5,7 @@ const session = require('express-session');
 const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
-
+mongoose.set('useFindAndModify', false);
 
 const tuote_schema = new Schema({
     text: {
@@ -89,6 +89,7 @@ app.use((req, res, next) => {
         next();
     }).catch((err) => {
         console.log(err);
+        next(err);
         res.redirect('login');
     });
 });
@@ -179,29 +180,91 @@ app.post('/muokkaa-kauppalista', (req, res, next) => {
     const user = req.user;
     const kauppalista_id_to_edit = req.body.kauppalista_id;
     
-
     mongoose.set('useFindAndModify', false);
     user.save().then(()=>{
           res.redirect(`/kauppalista/${kauppalista_id_to_edit}`);
     });
-
 });
 
 app.get('/kauppalista/:id', (req, res, next) => {
     const kauppalista_id = req.params.id;
-    kauppalista_model.findOne({
-        _id: kauppalista_id
-    }).then((kauppalista) => {
-        res.send(`
-        <html>
-        <body>
-            <h3>${kauppalista.nimi}</h3>
-        </body>
-        </html>
-        
-        `);
+    const user = req.user;
+
+    user.populate('kauppalistat').execPopulate().then(()=>{
+        kauppalista_model.findOne({
+            _id: kauppalista_id
+            }).then((kauppalista)=>{
+            res.send(`
+                <html>
+                <body>
+                <h3>${kauppalista.nimi}</h3>
+                <p align=right> Kirjautunut sisään käyttäjänimellä: ${user.nimi}
+                 <form action="/logout" method="POST">
+                    <p align=right> <button type="submit">Kirjaudu ulos</button>
+                 </form></p>
+                 <form action="/lisaa-tuote/${kauppalista_id}" method="POST">
+                     <input type="text" placeholder="tuote" name="tuote_text">
+                     <input type="text" placeholder="kuvan osoite" name="tuote_url">
+                     <input type="text" placeholder="määrä" name="tuote_maara">
+                     <button type="submit">Lisää tuote</button>
+                 </form>
+                 </body>
+                 </html>
+                 `);
+                const ObjectId = require('mongoose').ObjectID;
+                var tuote_id='';
+                var i=0;
+                for(i=0; i<kauppalista.tuotteet.length; i++){
+                    tuote_id = kauppalista.tuotteet[i];
+                    tuote_model.findOne({
+                        _id: tuote_id
+                    }).then((tuote)=>{
+                        res.send(`
+                        <html>
+                        <body>
+                        <table>
+                        <tr>
+                            <td rowspan="2">
+                                
+                            </td>
+                            <td>
+                                ${tuote.text}
+                            </td>
+                            <td width=100>
+                            </td>
+                            <td>
+                                <form action="poista-tuote" method="POST">
+                                    <input type="hidden" name="tuote_id" value="${tuote._id}">
+                                    <button type="submit">Poista tuote</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                            <form action="muokkaa-tuote" method="POST">
+                                    <input type="hidden" name="tuote_id" value="${tuote._id}">
+                                    määrä: <input type="text" name="paivitetty_maara" value="${tuote.maara}" size="1">                      
+                            </td>
+                            <td width=100>
+                            </td>
+                            <td>                     
+                                    <button type="submit">Päivitä määrä</button>
+                                </form>
+                            </td>
+                        </tr>
+                        </table>
+                        <hr width=550px align=left>
+                        <p>
+                        </body>
+                        </html>
+                        `);
+                    });
+                 }
+            });
     });
 });
+
+    
 
 
 app.post('/muokkaa-tuote', (req, res, next) => {
@@ -222,8 +285,9 @@ app.post('/muokkaa-tuote', (req, res, next) => {
             if (err) { throw err; }
             else { console.log("Updated"); }
           }); 
-          res.redirect("/");
-    });
+          res.redirect("/");        
+    }); 
+
 
 });
 
@@ -256,21 +320,26 @@ app.get('/tuote/:id', (req, res, next) => {
     });
 });
 
-app.post('/lisaa-tuote', (req, res, next) => {
+app.post('/lisaa-tuote/:id', (req, res, next) => {
     const user = req.user;
+    const kauppalista_id_to_edit = req.params.id;
 
     let new_tuote = tuote_model({
         text: req.body.tuote_text,
         kuva_url: req.body.tuote_url,
         maara: req.body.tuote_maara
     });
-    new_tuote.save().then(() => {
-        console.log('tuote tallennettu');
-        user.tuotteet.push(new_tuote);
-        user.save().then(() => {
-            return res.redirect('/');
-        });
-    });
+
+    mongoose.set('useFindAndModify', false);
+    new_tuote.save().then(user.save()).then(()=>{
+        kauppalista_model.findOneAndUpdate({_id: kauppalista_id_to_edit}, {$push: {tuotteet: new_tuote}}, {upsert: true}, function(err,doc) {
+            if (err) { throw err; }
+            else { 
+                console.log("Updated"); }
+          }); 
+          res.redirect(`/kauppalista/${kauppalista_id_to_edit}`);
+    }); 
+
 });
 
 
@@ -363,72 +432,4 @@ mongoose.connect(mongoose_url, {
     app.listen(PORT);
 });
 
-/* app.get('/', is_logged_handler, (req, res, next) => {
-    const user = req.user;
-    user.populate('tuotteet')
-        .execPopulate()
-        .then(() => {
-            //console.log('käyttäjä:', user);
-            res.write(`
-        <html>
-        <link rel="stylesheet" type="text/css" href="css/style.css"/>
-        <head><meta charset='utf-8'></head>
-        <body>
-           <p align=right> Kirjautunut sisään käyttäjänimellä: ${user.nimi}
-            <form action="/logout" method="POST">
-               <p align=right> <button type="submit">Kirjaudu ulos</button>
-            </form></p>
-            <h3>${user.nimi}n kauppalistat<br><br><br></h3>
-            `);
-            user.tuotteet.forEach((tuote) => {
-                res.write(`
-                <table>
-                <tr>
-                    <td rowspan="2">
-                        <img src="${tuote.kuva_url}" height="100" width="100">
-                    </td>
-                    <td>
-                        ${tuote.text}
-                    </td>
-                    <td width=100>
-                    </td>
-                    <td>
-                        <form action="poista-tuote" method="POST">
-                            <input type="hidden" name="tuote_id" value="${tuote._id}">
-                            <button type="submit">Poista tuote</button>
-                        </form>
-                    </td>
-                </tr>
-                <tr>
-                    <td>
-                    <form action="muokkaa-tuote" method="POST">
-                            <input type="hidden" name="tuote_id" value="${tuote._id}">
-                            määrä: <input type="text" name="paivitetty_maara" value="${tuote.maara}" size="1">                      
-                    </td>
-                    <td width=100>
-                    </td>
-                    <td>                     
-                            <button type="submit">Päivitä määrä</button>
-                        </form>
-                    </td>
-                </tr>
-                </table>
-                <hr width=550px align=left>
-                <p>
-                `);
-            });
 
-            res.write(`
-            <form action="/lisaa-tuote" method="POST">
-                <input type="text" placeholder="tuote" name="tuote_text">
-                <input type="text" placeholder="kuvan osoite" name="tuote_url">
-                <input type="text" placeholder="määrä" name="tuote_maara">
-                <button type="submit">Lisää tuote</button>
-            </form>
-
-        </html>
-        </body>
-        `);
-            res.end();
-        });
-}); */
