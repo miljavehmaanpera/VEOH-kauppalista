@@ -189,37 +189,88 @@ app.post('/muokkaa-kauppalista', (req, res, next) => {
 app.get('/kauppalista/:id', (req, res, next) => {
     const kauppalista_id = req.params.id;
     const user = req.user;
-
+    var tuote_id='';
+    var i=0;
+    var tuote_apu={
+        nimi:'',
+        maara:'',
+        kuva_url: ''
+    };
+    
+    var tuotteet_apu = [{tuote_apu}];
+    
+    //var result = kauppalista_model.find({_id: 'kauppalista_id'}).tuotteet;
+    //console.log(result);
     user.populate('kauppalistat').execPopulate().then(()=>{
         kauppalista_model.findOne({
             _id: kauppalista_id
             }).then((kauppalista)=>{
-            res.send(`
-                <html>
-                <body>
-                <h3>${kauppalista.nimi}</h3>
-                <p align=right> Kirjautunut sisään käyttäjänimellä: ${user.nimi}
-                 <form action="/logout" method="POST">
-                    <p align=right> <button type="submit">Kirjaudu ulos</button>
-                 </form></p>
-                 <form action="/lisaa-tuote/${kauppalista_id}" method="POST">
-                     <input type="text" placeholder="tuote" name="tuote_text">
-                     <input type="text" placeholder="kuvan osoite" name="tuote_url">
-                     <input type="text" placeholder="määrä" name="tuote_maara">
-                     <button type="submit">Lisää tuote</button>
-                 </form>
-                 </body>
-                 </html>
-                 `);
-                const ObjectId = require('mongoose').ObjectID;
-                var tuote_id='';
-                var i=0;
-                for(i=0; i<kauppalista.tuotteet.length; i++){
+                //console.log(kauppalista.tuotteet);
+
+                for(i=0; i<kauppalista.tuotteet.length; i++) {
                     tuote_id = kauppalista.tuotteet[i];
                     tuote_model.findOne({
                         _id: tuote_id
-                    }).then((tuote)=>{
-                        res.send(`
+                   }).then((tuote)=>{
+                      //console.log(tuote.text);
+                      tuote_apu.nimi=tuote.text;
+                      tuote_apu.maara=tuote.maara;
+                      tuote_apu.kuva_url=tuote.kuva_url;
+                      tuotteet_apu.push({tuote});
+                      console.log(tuote_apu);
+                      //res.write(`${tuote.text}`, function(err) {res.end()});
+                   });
+                 }
+                 console.log(tuotteet_apu);
+                 console.log(tuotteet_apu);
+
+                res.write(
+                    `
+                    <html>
+                    <body>
+                    <h3>${kauppalista.nimi}</h3>
+                    <p align=right> Kirjautunut sisään käyttäjänimellä: ${user.nimi}
+                     <form action="/logout" method="POST">
+                        <p align=right> <button type="submit">Kirjaudu ulos</button>
+                     </form></p>
+                     <form action="/lisaa-tuote/${kauppalista_id}" method="POST">
+                         <input type="text" placeholder="tuote" name="tuote_text">
+                         <input type="text" placeholder="kuvan osoite" name="tuote_url">
+                         <input type="text" placeholder="määrä" name="tuote_maara">
+                         <button type="submit">Lisää tuote</button>
+                     </form>
+                     </body>
+                     </html>
+                     `);
+                
+                tuotteet_apu.forEach((tuote)=>{
+                    res.write(`${tuote.nimi}`);
+                    console.log(`tuote:   ${tuote.nimi}`);
+                });
+                     
+                res.end();
+                     //, function(err) { res.end(); });
+                     
+                     
+                     
+                     
+
+            });
+    });
+});
+    
+
+    
+        
+                
+                
+                
+                
+                    
+                    
+
+
+                        /*res.send(`
                         <html>
                         <body>
                         <table>
@@ -257,12 +308,9 @@ app.get('/kauppalista/:id', (req, res, next) => {
                         <p>
                         </body>
                         </html>
-                        `);
-                    });
-                 }
-            });
-    });
-});
+                        `);*/
+
+
 
     
 
