@@ -207,57 +207,80 @@ app.get('/kauppalista/:id', (req, res, next) => {
             }).then((kauppalista)=>{
                 //console.log(kauppalista.tuotteet);
 
+                var item = tuote_model.find({ _id : '5e42e67034579d270895aa9d'}).text;
+
+                // print
+                console.log(item);
+                
+                //console.log(kauppalista.tuotteet);
                 for(i=0; i<kauppalista.tuotteet.length; i++) {
                     tuote_id = kauppalista.tuotteet[i];
                     tuote_model.findOne({
                         _id: tuote_id
                    }).then((tuote)=>{
-                      //console.log(tuote.text);
+                    //res.write(`${tuote.text}`);
+                      //console.log(tuote.text); // tämä tulostaa nimet hienosti konsolille
+                      //res.write(tuote.text); // ... mutta kun laittaa tämän, tulee virheilmoitus ERR_STREAM_WRITE_AFTER_END
                       tuote_apu.nimi=tuote.text;
                       tuote_apu.maara=tuote.maara;
                       tuote_apu.kuva_url=tuote.kuva_url;
-                      tuotteet_apu.push({tuote});
-                      console.log(tuote_apu);
-                      //res.write(`${tuote.text}`, function(err) {res.end()});
-                   });
-                 }
-                 console.log(tuotteet_apu);
-                 console.log(tuotteet_apu);
+                      tuotteet_apu.push(tuote_apu);
+                    });
+                }
 
-                res.write(
-                    `
-                    <html>
-                    <body>
-                    <h3>${kauppalista.nimi}</h3>
-                    <p align=right> Kirjautunut sisään käyttäjänimellä: ${user.nimi}
-                     <form action="/logout" method="POST">
-                        <p align=right> <button type="submit">Kirjaudu ulos</button>
-                     </form></p>
-                     <form action="/lisaa-tuote/${kauppalista_id}" method="POST">
-                         <input type="text" placeholder="tuote" name="tuote_text">
-                         <input type="text" placeholder="kuvan osoite" name="tuote_url">
-                         <input type="text" placeholder="määrä" name="tuote_maara">
-                         <button type="submit">Lisää tuote</button>
-                     </form>
-                     </body>
-                     </html>
-                     `);
+                //tämä versio, id:t on tiedossa mutta tuote.maara ym ovat undefined
+                /* kauppalista.tuotteet.forEach(tuote => {
+                    console.log(tuote.maara);
+                    if(tuote._id == kauppalista.tuotteet[tuote]){
+                        console.log(tuote.text);
+                        res.write(`${tuote.text}`);
+                    }
+                }); */
                 
-                tuotteet_apu.forEach((tuote)=>{
-                    res.write(`${tuote.nimi}`);
-                    console.log(`tuote:   ${tuote.nimi}`);
-                });
-                     
-                res.end();
+            });
+            res.end();
+    });
+    
+});
+                      //console.log(tuote_apu);
+                      //res.write(`${tuote.text}`, function(err) {res.end()});
+
+                     // tuotteet.forEach((tuote)=>{
+                     //   res.write(`${tuote.nimi}`);
+                     //   console.log(`tuote:   ${tuote.nimi}`);
+                     //   });
+
+                     // tässä alla pätkä, jossa voi lisätä tuotteen, html
+                        /* res.write(
+                            `
+                            <html>
+                            <body>
+                            <h3>${kauppalista.nimi}</h3>
+                            <p align=right> Kirjautunut sisään käyttäjänimellä: ${user.nimi}
+                             <form action="/logout" method="POST">
+                                <p align=right> <button type="submit">Kirjaudu ulos</button>
+                             </form></p>
+                             <form action="/lisaa-tuote/${kauppalista_id}" method="POST">
+                                 <input type="text" placeholder="tuote" name="tuote_text">
+                                 <input type="text" placeholder="kuvan osoite" name="tuote_url">
+                                 <input type="text" placeholder="määrä" name="tuote_maara">
+                                 <button type="submit">Lisää tuote</button>
+                             </form>
+                             </body>
+                             </html>
+                             `); */
+
+                   
+                 
+  
+                //res.end();
                      //, function(err) { res.end(); });
                      
                      
                      
                      
 
-            });
-    });
-});
+
     
 
     
