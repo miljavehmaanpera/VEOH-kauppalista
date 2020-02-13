@@ -1,3 +1,4 @@
+//ongelmat rivin 205 tietämillä
 const express = require('express');
 const PORT = process.env.PORT || 8080;
 const body_parser = require('body-parser');
@@ -186,6 +187,11 @@ app.post('/muokkaa-kauppalista', (req, res, next) => {
     });
 });
 
+function sleep(delay) {
+    var start = new Date().getTime();
+    while (new Date().getTime() < start + delay);
+  }
+
 app.get('/kauppalista/:id', (req, res, next) => {
     const kauppalista_id = req.params.id;
     const user = req.user;
@@ -197,7 +203,7 @@ app.get('/kauppalista/:id', (req, res, next) => {
         kuva_url: ''
     };
     
-    var tuotteet_apu = [{tuote_apu}];
+    var tuotteet_apu = [];
     
     //var result = kauppalista_model.find({_id: 'kauppalista_id'}).tuotteet;
     //console.log(result);
@@ -220,13 +226,18 @@ app.get('/kauppalista/:id', (req, res, next) => {
                    }).then((tuote)=>{
                     //res.write(`${tuote.text}`);
                       //console.log(tuote.text); // tämä tulostaa nimet hienosti konsolille
-                      //res.write(tuote.text); // ... mutta kun laittaa tämän, tulee virheilmoitus ERR_STREAM_WRITE_AFTER_END
+                      res.write(tuote.text); // ... mutta kun laittaa tämän, tulee virheilmoitus ERR_STREAM_WRITE_AFTER_END
                       tuote_apu.nimi=tuote.text;
                       tuote_apu.maara=tuote.maara;
                       tuote_apu.kuva_url=tuote.kuva_url;
                       tuotteet_apu.push(tuote_apu);
+                      
                     });
                 }
+                sleep(2000);
+                res.end();
+                
+                
 
                 //tämä versio, id:t on tiedossa mutta tuote.maara ym ovat undefined
                 /* kauppalista.tuotteet.forEach(tuote => {
@@ -237,8 +248,10 @@ app.get('/kauppalista/:id', (req, res, next) => {
                     }
                 }); */
                 
+            }).then(()=>{
+                console.log(tuotteet_apu);
             });
-            res.end();
+ //res.end();
     });
     
 });
