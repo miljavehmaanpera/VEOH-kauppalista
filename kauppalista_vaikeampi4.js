@@ -111,26 +111,43 @@ app.get('/', is_logged_handler, (req, res, next) => {
             <form action="/logout" method="POST">
                <p align=right> <button type="submit">Kirjaudu ulos</button>
             </form></p>
-            <h3>${user.nimi}n kauppalistat<br><br><br></h3>
+            <h3>Kauppalistat:</h3>
+            <br>
+            <table>
             `);
+
             user.kauppalistat.forEach((kauppalista) => {
                 res.write(`
-                <href="/shopping-list/${kauppalista._id}">
-                        ${kauppalista.nimi}
                     
-                        <form action="muokkaa-kauppalista" method="POST">
-                            <input type="hidden" name="kauppalista_id" value="${kauppalista._id}">                                       
-                            <button type="submit">Päivitä kauppalista</button>
-                        </form>
-
-                        <form action="poista-kauppalista" method="POST">
-                            <input type="hidden" name="kauppalista_id" value="${kauppalista._id}">
-                            <button type="submit">Poista kauppalista</button>
-                        </form>             
+                        <tr>
+                            <td>
+                                ${kauppalista.nimi}
+                            </td>
+                            <td width=100px>
+                            </td>
+                            <td>
+                                <form action="muokkaa-kauppalista" method="POST">
+                                    <input type="hidden" name="kauppalista_id" value="${kauppalista._id}">                                       
+                                    <button type="submit">Tarkastele / päivitä</button>
+                                </form>
+                            </td>
+                            <td>
+                                <form action="poista-kauppalista" method="POST">
+                                    <input type="hidden" name="kauppalista_id" value="${kauppalista._id}">
+                                    <button type="submit">Poista</button>
+                                </form>
+                            </td>
+                        </tr>  
+                    
+               
                 `);
             });
 
             res.write(`
+            </table>
+            <br>
+            <br>
+            
             <form action="/lisaa-kauppalista" method="POST">
                 <input type="text" placeholder="kauppalistan nimi" name="kauppalista_nimi">
                 <button type="submit">Lisää kauppalista</button>
@@ -202,7 +219,7 @@ app.get('/kauppalista/:id', (req, res, next) => {
             console.log(kauppalista.tuotteet.length);
             res.write(`
                 <html>
-                <link rel="stylesheet" type="text/css" href="css/style.css"/>
+                <link rel="stylesheet" type="text/css" href="/css/style.css"/>
                 <head><meta charset='utf-8'></head>
                 <body>
                 <p align=right> Kirjautunut sisään käyttäjänimellä: ${user.nimi}
@@ -210,10 +227,9 @@ app.get('/kauppalista/:id', (req, res, next) => {
                     <p align=right> <button type="submit">Kirjaudu ulos</button>
                     </form>
                 </p>
-                    <h3>${user.nimi}n kauppalista<br><br><br></h3>
+                    <h3>kauppalista: ${kauppalista.nimi}<br><br></h3>
             `);
              for(i=0; i<kauppalista.tuotteet.length; i++) {
-                res.write(kauppalista.tuotteet[i].text);
                 res.write(`
                 <table>
                 <tr>
@@ -262,10 +278,15 @@ app.get('/kauppalista/:id', (req, res, next) => {
                 <input type="text" placeholder="määrä" name="tuote_maara">
                 <button type="submit">Lisää tuote</button>
             </form>
+
+
+            <form action="palaa-etusivulle" method="POST">
+                <button type="submit">Palaa pääsivulle</button>
+            </form>
             
-    
-        </html>
         </body>
+        </html>
+        
         `);
             res.end();
         });
@@ -358,9 +379,12 @@ app.post('/kauppalista/lisaa-tuote', (req, res, next) => {
 
 });
 
+app.post('/kauppalista/palaa-etusivulle', (req, res, next) => {
+    res.redirect('/');
+});
 
 //
-// alla olevia ei tarvitse muokata
+// kirjautumishommat
 
 app.post('/logout', (req, res, next) => {
     req.session.destroy();
@@ -373,7 +397,7 @@ app.get('/login', (req, res, next) => {
     <link rel="stylesheet" type="text/css" href="css/style.css"/>
     <head><meta charset='utf-8'></head>
     <body>
-        <h1 align=center>Tervetuloa!</h1>
+        <h1 align=center>Tervetuloa kauppalistasovellukseen!</h1>
         <div align=center>
             <form action="/login" method="POST">
                 <input type="text" name="kayttajanimi">
