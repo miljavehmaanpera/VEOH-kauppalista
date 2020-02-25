@@ -383,7 +383,7 @@ app.post('/kauppalista/palaa-etusivulle', (req, res, next) => {
     res.redirect('/');
 });
 
-//
+// 
 // kirjautumishommat
 
 app.post('/logout', (req, res, next) => {
