@@ -142,13 +142,13 @@ app.post('/poista-kauppalista', (req, res, next) => {
     const user = req.user;
     const kauppalista_id_to_delete = req.body.kauppalista_id;
 
-    //Remove tuote from user.kauppalistat
+    //Remove kauppalista from user.kauppalistat
     const updated_kauppalistat = user.kauppalistat.filter((kauppalista_id) => {
         return kauppalista_id != kauppalista_id_to_delete;
     });
     user.kauppalistat = updated_kauppalistat;
 
-    //Remove tuote object from database
+    //Remove kauppalista object from database
     user.save().then(() => {
         kauppalista_model.findByIdAndRemove(kauppalista_id_to_delete).then(() => {
             res.redirect('/');
@@ -164,6 +164,77 @@ app.post('/muokkaa-kauppalista', (req, res, next) => {
     user.save().then(()=>{
           res.redirect(`/kauppalista/${kauppalista_id_to_edit}`);
     });
+});
+
+                
+    
+app.post('/kauppalista/lisaa-tuote', (req, res, next) => {
+    const user = req.user;
+    const kauppalista_to_edit = req.body.kauppalistan_id;
+
+    let new_tuote = tuote_model({
+        text: req.body.tuote_text,
+        kuva_url: req.body.tuote_url,
+        maara: req.body.tuote_maara
+    });
+
+    mongoose.set('useFindAndModify', false);
+    new_tuote.save().then(user.save()).then(()=>{
+        kauppalista_model.findOneAndUpdate({_id: kauppalista_to_edit}, {$push: {tuotteet: new_tuote}}, {upsert: true}, function(err,doc) {
+            if (err) { throw err; }
+            else { 
+                console.log("Updated"); }
+          }); 
+          res.redirect(`/kauppalista/${kauppalista_to_edit}`);
+    }); 
+
+});
+
+app.post('/kauppalista/poista-tuote', (req, res, next) => {
+    const user = req.user;
+    const tuote_id_to_delete = req.body.tuote_id;
+    const kauppalista_to_edit = req.body.kauppalistan_id;
+
+    kauppalista_model.findOne({
+        _id: kauppalista_to_edit
+    }).then((kauppalista)=>{
+        kauppalista.populate('tuotteet').execPopulate().then((tuotteet)=>{
+            const updated_tuotteet = kauppalista.tuotteet.filter((tuote_id) => {
+                return tuote_id != tuote_id_to_delete;
+            });
+            kauppalista.tuotteet = updated_tuotteet;
+        });
+        
+        //Tämä kaipaa korjaamista, jos ehtii. tuote ei poistu tietokannasta kauppalistalta
+        user.save().then(() => {
+            tuote_model.findByIdAndRemove(tuote_id_to_delete).then(() => {
+                res.redirect(`/kauppalista/${kauppalista_to_edit}`);   
+            });
+        });
+    });
+});
+
+app.post('/kauppalista/muokkaa-tuote', (req, res, next) => {
+    const user = req.user;
+    const tuote_id_to_edit = req.body.tuote_id;
+    const uusi_maara = req.body.paivitetty_maara;
+    const kauppalista_to_edit = req.body.kauppalistan_id;
+    
+    user.kauppalistat.forEach(tuote => {
+        console.log(tuote._id);
+        if(tuote._id == tuote_id_to_edit){
+            tuote.maara = uusi_maara;
+        }
+    });
+
+    mongoose.set('useFindAndModify', false);
+    user.save().then(()=>{
+        tuote_model.findOneAndUpdate({_id: tuote_id_to_edit}, {$set: {maara: uusi_maara}}, {upsert: true}, function(err,doc) {
+            if (err) { throw err; }
+            else { console.log("Updated"); }
+          }); 
+          res.redirect(`/kauppalista/${kauppalista_to_edit}`);     
+    }); 
 });
 
 
@@ -256,57 +327,6 @@ app.get('/kauppalista/:id', (req, res, next) => {
     });
         
 });
- 
-                
-    
-
-
-app.post('/kauppalista/muokkaa-tuote', (req, res, next) => {
-    const user = req.user;
-    const tuote_id_to_edit = req.body.tuote_id;
-    const uusi_maara = req.body.paivitetty_maara;
-    const kauppalista_to_edit = req.body.kauppalistan_id;
-    
-    user.kauppalistat.forEach(tuote => {
-        console.log(tuote._id);
-        if(tuote._id == tuote_id_to_edit){
-            tuote.maara = uusi_maara;
-        }
-    });
-
-    mongoose.set('useFindAndModify', false);
-    user.save().then(()=>{
-        tuote_model.findOneAndUpdate({_id: tuote_id_to_edit}, {$set: {maara: uusi_maara}}, {upsert: true}, function(err,doc) {
-            if (err) { throw err; }
-            else { console.log("Updated"); }
-          }); 
-          res.redirect(`/kauppalista/${kauppalista_to_edit}`);     
-    }); 
-});
-
-app.post('/kauppalista/poista-tuote', (req, res, next) => {
-    const user = req.user;
-    const tuote_id_to_delete = req.body.tuote_id;
-    const kauppalista_to_edit = req.body.kauppalistan_id;
-
-    kauppalista_model.findOne({
-        _id: kauppalista_to_edit
-    }).then((kauppalista)=>{
-        kauppalista.populate('tuotteet').execPopulate().then((tuotteet)=>{
-            const updated_tuotteet = kauppalista.tuotteet.filter((tuote_id) => {
-                return tuote_id != tuote_id_to_delete;
-            });
-            kauppalista.tuotteet = updated_tuotteet;
-        });
-        
-        //Tämä kaipaa korjaamista, jos ehtii. tuote ei poistu tietokannasta kauppalistalta
-        user.save().then(() => {
-            tuote_model.findByIdAndRemove(tuote_id_to_delete).then(() => {
-                res.redirect(`/kauppalista/${kauppalista_to_edit}`);   
-            });
-        });
-    });
-});
 
 app.get('/kauppalista/tuote/:id', (req, res, next) => {
     const tuote_id = req.params.id;
@@ -319,27 +339,6 @@ app.get('/kauppalista/tuote/:id', (req, res, next) => {
     });
 });
 
-app.post('/kauppalista/lisaa-tuote', (req, res, next) => {
-    const user = req.user;
-    const kauppalista_to_edit = req.body.kauppalistan_id;
-
-    let new_tuote = tuote_model({
-        text: req.body.tuote_text,
-        kuva_url: req.body.tuote_url,
-        maara: req.body.tuote_maara
-    });
-
-    mongoose.set('useFindAndModify', false);
-    new_tuote.save().then(user.save()).then(()=>{
-        kauppalista_model.findOneAndUpdate({_id: kauppalista_to_edit}, {$push: {tuotteet: new_tuote}}, {upsert: true}, function(err,doc) {
-            if (err) { throw err; }
-            else { 
-                console.log("Updated"); }
-          }); 
-          res.redirect(`/kauppalista/${kauppalista_to_edit}`);
-    }); 
-
-});
 
 app.post('/kauppalista/palaa-etusivulle', (req, res, next) => {
     res.redirect('/');
@@ -420,7 +419,7 @@ app.use((req, res, next) => {
     `);
 });
 
-//Shutdown server CTRL + C in terminal
+//Serveri
 
 const mongoose_url = 'mongodb+srv://kauppalistauser:cCPVADNE2Gb5prde@cluster0-gmpod.mongodb.net/test?retryWrites=true&w=majority';
 
