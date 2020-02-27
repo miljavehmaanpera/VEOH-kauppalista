@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node kauppalista_vaikeampi4.js",
-    "start-dev": "nodemon kauppalista_vaikeampi4.js"
+    "start": "node kauppalista_palautus.js",
+    "start-dev": "nodemon kauppalista_palautus.js"
   },
   "repository": {
     "type": "git",
